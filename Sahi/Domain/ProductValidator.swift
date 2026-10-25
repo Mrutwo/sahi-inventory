@@ -2,7 +2,7 @@ import Foundation
 
 /// Client-side validation with Hebrew messages. The server repeats every check;
 /// this layer exists so volunteers get instant, clear feedback.
-enum ValidationIssue: Equatable, Sendable {
+enum ValidationIssue: Error, Equatable, Sendable {
     case nameEmpty
     case nameTooLong
     case quantityEmpty
