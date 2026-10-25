@@ -195,13 +195,20 @@ final class StockReasonTests: XCTestCase {
 final class ActivityDescriberTests: XCTestCase {
     func testHebrewSentences() {
         let increase = entry(kind: .increase, delta: 10, previous: 15, new: 25, unit: "unit", product: "אורז")
-        XCTAssertEqual(ActivityDescriber.sentence(for: increase, units: Fixtures.unitsByCode), "נוספו 10 יחידות אורז")
+        XCTAssertEqual(plain(ActivityDescriber.sentence(for: increase, units: Fixtures.unitsByCode)), "נוספו 10 יחידות אורז")
 
         let set = entry(kind: .set, delta: 6, previous: 12, new: 18, unit: "bottle", product: "שמן")
-        XCTAssertEqual(ActivityDescriber.sentence(for: set, units: Fixtures.unitsByCode), "הכמות של שמן עודכנה מ-12 ל-18")
+        XCTAssertEqual(plain(ActivityDescriber.sentence(for: set, units: Fixtures.unitsByCode)), "הכמות של שמן עודכנה מ-12 ל-18")
 
         let decrease = entry(kind: .decrease, delta: -5, previous: 32, new: 27, unit: "box", product: "טונה")
-        XCTAssertEqual(ActivityDescriber.sentence(for: decrease, units: Fixtures.unitsByCode), "הוצאו 5 קופסאות טונה")
+        XCTAssertEqual(plain(ActivityDescriber.sentence(for: decrease, units: Fixtures.unitsByCode)), "הוצאו 5 קופסאות טונה")
+    }
+
+    /// String(localized:) wraps interpolated values in Unicode direction
+    /// isolates (U+2068 ... U+2069) so mixed Hebrew/number text renders
+    /// correctly; strip them for comparison.
+    private func plain(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{2068}", with: "").replacingOccurrences(of: "\u{2069}", with: "")
     }
 
     private func entry(kind: ActivityEntry.Kind, delta: Decimal, previous: Decimal, new: Decimal, unit: String, product: String) -> ActivityEntry {
