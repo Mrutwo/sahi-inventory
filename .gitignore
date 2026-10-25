@@ -1,0 +1,14 @@
+# Secrets — never commit backend keys
+Config/Secrets.xcconfig
+supabase/.env
+supabase/.temp/
+supabase/tests/node_modules/
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+.swiftpm/
+.DS_Store

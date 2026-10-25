@@ -1,0 +1,102 @@
+# Builds the iPhone app on a free GitHub macOS runner (no Mac needed).
+# Produces an UNSIGNED Sahi.ipa artifact; sign & install it from Windows with
+# Sideloadly using a free Apple ID. Also compiles and runs the unit tests.
+#
+# Repository secrets required (Settings → Secrets and variables → Actions):
+#   SUPABASE_HOST      e.g. abcd1234.supabase.co
+#   SUPABASE_ANON_KEY  the public anon key (never the service_role key)
+name: Build iOS app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  ipa:
+    name: Build unsigned IPA
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Write backend settings
+        env:
+          SUPABASE_HOST: ${{ secrets.SUPABASE_HOST }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_HOST" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::warning::SUPABASE_HOST / SUPABASE_ANON_KEY secrets are not set; the app will show the setup screen."
+          fi
+          cat > Config/Secrets.xcconfig <<EOF
+          SUPABASE_SCHEME = https
+          SUPABASE_HOST = ${SUPABASE_HOST}
+          SUPABASE_ANON_KEY = ${SUPABASE_ANON_KEY}
+          EOF
+
+      - name: Build for iPhone (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Sahi.xcodeproj \
+            -scheme Sahi \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tee build.log
+
+      - name: Package Sahi.ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Sahi.app Payload/
+          zip -qr Sahi.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sahi-ipa
+          path: Sahi.ipa
+          retention-days: 14
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+
+  tests:
+    name: Unit tests (iPhone simulator)
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          SIM=$(xcrun simctl list devices available | grep -m1 -oE 'iPhone 1[0-9][^(]*' | sed 's/ *$//')
+          echo "Using simulator: $SIM"
+          xcodebuild test \
+            -project Sahi.xcodeproj \
+            -scheme Sahi \
+            -destination "platform=iOS Simulator,name=$SIM" \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee test.log
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: test.log

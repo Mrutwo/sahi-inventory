@@ -1,0 +1,9 @@
+// Build settings shared by all configurations of the Sahi app target.
+// Backend values come from Secrets.xcconfig (not committed). Copy
+// Secrets.example.xcconfig to Secrets.xcconfig and fill it in.
+
+SUPABASE_SCHEME = https
+SUPABASE_HOST =
+SUPABASE_ANON_KEY =
+
+#include? "Secrets.xcconfig"

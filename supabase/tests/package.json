@@ -1,0 +1,13 @@
+{
+  "name": "sahi-db-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test db.test.mjs",
+    "sync-check": "node live/sync-check.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
+    "@supabase/supabase-js": "2.117.2"
+  }
+}
